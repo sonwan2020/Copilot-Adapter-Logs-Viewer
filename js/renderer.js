@@ -520,7 +520,37 @@ export function renderSystemTab(entry) {
 
     const content = document.createElement('div');
     content.className = 'collapsible-content';
-    content.appendChild(renderTextContent(text));
+
+    const wrapper = document.createElement('div');
+    wrapper.className = 'md-toggle-wrapper';
+
+    const toggleBtn = document.createElement('button');
+    toggleBtn.className = 'md-toggle-btn';
+    toggleBtn.textContent = 'Plain Text';
+    toggleBtn.title = 'Toggle between formatted and plain text';
+
+    const mdView = renderMarkdownContent(text);
+    const plainView = document.createElement('pre');
+    plainView.className = 'plain-text-view hidden';
+    plainView.textContent = text;
+
+    toggleBtn.addEventListener('click', () => {
+      const showingPlain = !plainView.classList.contains('hidden');
+      if (showingPlain) {
+        plainView.classList.add('hidden');
+        mdView.classList.remove('hidden');
+        toggleBtn.textContent = 'Plain Text';
+      } else {
+        mdView.classList.add('hidden');
+        plainView.classList.remove('hidden');
+        toggleBtn.textContent = 'Formatted';
+      }
+    });
+
+    wrapper.appendChild(toggleBtn);
+    wrapper.appendChild(mdView);
+    wrapper.appendChild(plainView);
+    content.appendChild(wrapper);
 
     details.appendChild(summary);
     details.appendChild(content);
@@ -778,7 +808,36 @@ export function renderResponseTab(entry) {
   contentSection.appendChild(contentTitle);
 
   if (parsed.content) {
-    contentSection.appendChild(renderTextContent(parsed.content));
+    const wrapper = document.createElement('div');
+    wrapper.className = 'md-toggle-wrapper';
+
+    const toggleBtn = document.createElement('button');
+    toggleBtn.className = 'md-toggle-btn';
+    toggleBtn.textContent = 'Plain Text';
+    toggleBtn.title = 'Toggle between formatted and plain text';
+
+    const mdView = renderMarkdownContent(parsed.content);
+    const plainView = document.createElement('pre');
+    plainView.className = 'plain-text-view hidden';
+    plainView.textContent = parsed.content;
+
+    toggleBtn.addEventListener('click', () => {
+      const showingPlain = !plainView.classList.contains('hidden');
+      if (showingPlain) {
+        plainView.classList.add('hidden');
+        mdView.classList.remove('hidden');
+        toggleBtn.textContent = 'Plain Text';
+      } else {
+        mdView.classList.add('hidden');
+        plainView.classList.remove('hidden');
+        toggleBtn.textContent = 'Formatted';
+      }
+    });
+
+    wrapper.appendChild(toggleBtn);
+    wrapper.appendChild(mdView);
+    wrapper.appendChild(plainView);
+    contentSection.appendChild(wrapper);
   } else {
     const empty = document.createElement('div');
     empty.style.color = 'var(--text-muted)';
