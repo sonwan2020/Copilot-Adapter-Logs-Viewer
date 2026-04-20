@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'self'; script-src 'self'; img-src 'none'; connect-src 'none';">
+  <title>Copilot Adapter Logs Reviewer</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div class="app">
+    <!-- Header -->
+    <header class="header">
+      <h1>
+        <span>&#128209;</span> Copilot Adapter Logs Reviewer
+      </h1>
+      <div class="header-actions">
+        <button class="theme-toggle" id="themeToggle" title="Toggle theme">&#9790;</button>
+      </div>
+    </header>
+
+    <!-- Drop Zone -->
+    <div class="drop-zone-container" id="dropZoneContainer">
+      <div class="drop-zone" id="dropZone">
+        <div class="drop-zone-icon">&#128230;</div>
+        <div class="drop-zone-text">Drag &amp; drop <code>.json</code> log files here</div>
+        <div class="drop-zone-hint">or click to browse files</div>
+        <input type="file" id="fileInput" accept=".json,.jsonl" multiple hidden>
+      </div>
+    </div>
+
+    <!-- File Info Bar (shown after loading) -->
+    <div class="file-info hidden" id="fileInfo">
+      <span class="file-info-item" id="fileName"></span>
+      <span class="file-info-item" id="fileSize"></span>
+      <span class="file-info-item" id="entryCount"></span>
+      <span id="truncatedBadge" class="hidden"><span class="badge badge-warning">Truncated</span></span>
+      <button class="close-btn" id="closeFile" title="Close file">&times;</button>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content hidden" id="mainContent">
+      <!-- Sidebar: Entry List -->
+      <aside class="sidebar">
+        <div class="sidebar-header">
+          <span>Entries</span>
+          <span id="filteredCount"></span>
+        </div>
+        <div class="sidebar-filter">
+          <select id="modelFilter">
+            <option value="">All models</option>
+          </select>
+          <input type="text" id="searchInput" placeholder="Search messages...">
+        </div>
+        <div class="entry-list" id="entryList"></div>
+      </aside>
+
+      <!-- Detail Panel -->
+      <main class="detail-panel">
+        <div class="detail-empty" id="detailEmpty">
+          <span>Select an entry from the list to view details</span>
+        </div>
+        <div class="hidden" id="detailView">
+          <!-- Detail Header -->
+          <div class="detail-header" id="detailHeader"></div>
+
+          <!-- Tabs -->
+          <div class="tabs" id="tabs">
+            <button class="tab active" data-tab="messages">Messages</button>
+            <button class="tab" data-tab="system">System <span class="tab-count" id="systemCount"></span></button>
+            <button class="tab" data-tab="tools">Tools <span class="tab-count" id="toolsCount"></span></button>
+            <button class="tab" data-tab="request">Request</button>
+            <button class="tab" data-tab="response">Response</button>
+          </div>
+
+          <!-- Tab Content -->
+          <div class="tab-content" id="tabContent"></div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>

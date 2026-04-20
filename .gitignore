@@ -1,0 +1,19 @@
+# Copilot Adapter Logs Reviewer - .gitignore
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
+
+# OMC state (dev tooling)
+.omc/
+
+# Sample log files (contain potentially sensitive data)
+*.json
+!package.json
+
+# Node modules (if any dev tools added later)
+node_modules/
