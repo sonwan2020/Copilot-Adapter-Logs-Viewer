@@ -366,6 +366,13 @@ html, body {
   overflow: hidden;
 }
 
+#detailView {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  overflow: hidden;
+}
+
 .detail-empty {
   display: flex;
   align-items: center;
