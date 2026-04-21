@@ -563,7 +563,7 @@ export function renderSystemTab(entry) {
 /**
  * Render the Tools tab content.
  */
-export function renderToolsTab(entry) {
+export function renderToolsTab(entry, searchTerm = '') {
   const container = document.createElement('div');
   const tools = entry.anthropicRequest?.tools || [];
 
@@ -572,9 +572,20 @@ export function renderToolsTab(entry) {
     return container;
   }
 
+  const lowerSearch = searchTerm.toLowerCase();
+  let firstMatch = null;
+
   tools.forEach((tool) => {
     const details = document.createElement('details');
     details.className = 'tool-card';
+
+    // Auto-expand if tool matches search term
+    const nameMatches = lowerSearch && (tool.name || '').toLowerCase().includes(lowerSearch);
+    const descMatches = lowerSearch && (tool.description || '').toLowerCase().includes(lowerSearch);
+    if (nameMatches || descMatches) {
+      details.open = true;
+      if (!firstMatch) firstMatch = details;
+    }
 
     const summary = document.createElement('summary');
     summary.textContent = tool.name || 'unnamed';
@@ -636,6 +647,13 @@ export function renderToolsTab(entry) {
     details.appendChild(content);
     container.appendChild(details);
   });
+
+  // Scroll to first matching tool
+  if (firstMatch) {
+    requestAnimationFrame(() => {
+      firstMatch.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  }
 
   return container;
 }

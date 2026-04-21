@@ -23,6 +23,7 @@ let state = {
   fileName: '',
   fileSize: 0,
   truncated: false,
+  searchMatchTab: {},
 };
 
 // ===== DOM References =====
@@ -163,6 +164,9 @@ function applyFilters() {
   const modelVal = modelFilter.value;
   const searchVal = searchInput.value.toLowerCase().trim();
 
+  // Track which tab the search matched in for each entry
+  state.searchMatchTab = {};
+
   state.filteredEntries = state.entries.filter((entry, i) => {
     // Model filter
     if (modelVal && (entry.anthropicRequest?.model || 'unknown') !== modelVal) {
@@ -171,21 +175,48 @@ function applyFilters() {
 
     // Text search
     if (searchVal) {
+      // Search messages
       const messages = entry.anthropicRequest?.messages || [];
-      const found = messages.some(msg => {
+      const msgFound = messages.some(msg => {
         const content = typeof msg.content === 'string'
           ? msg.content
           : JSON.stringify(msg.content);
         return content.toLowerCase().includes(searchVal);
       });
-      if (!found) {
-        // Also search system prompts
-        const system = entry.anthropicRequest?.system || [];
-        const sysFound = system.some(s =>
-          (s.text || JSON.stringify(s)).toLowerCase().includes(searchVal)
-        );
-        if (!sysFound) return false;
+      if (msgFound) {
+        state.searchMatchTab[i] = 'messages';
+        return true;
       }
+
+      // Search system prompts
+      const system = entry.anthropicRequest?.system || [];
+      const sysFound = system.some(s =>
+        (s.text || JSON.stringify(s)).toLowerCase().includes(searchVal)
+      );
+      if (sysFound) {
+        state.searchMatchTab[i] = 'system';
+        return true;
+      }
+
+      // Search tools
+      const tools = entry.anthropicRequest?.tools || [];
+      const toolFound = tools.some(t =>
+        (t.name || '').toLowerCase().includes(searchVal) ||
+        (t.description || '').toLowerCase().includes(searchVal)
+      );
+      if (toolFound) {
+        state.searchMatchTab[i] = 'tools';
+        return true;
+      }
+
+      // Search response
+      const response = entry.copilotResponse || '';
+      if (response.toLowerCase().includes(searchVal)) {
+        state.searchMatchTab[i] = 'response';
+        return true;
+      }
+
+      return false;
     }
 
     return true;
@@ -231,8 +262,13 @@ function selectEntry(index) {
   systemCount.textContent = `(${entry.anthropicRequest?.system?.length || 0})`;
   toolsCount.textContent = `(${entry.anthropicRequest?.tools?.length || 0})`;
 
-  // Render active tab
-  renderActiveTab();
+  // Auto-switch to the tab where search matched
+  const searchVal = searchInput.value.trim();
+  if (searchVal && state.searchMatchTab && state.searchMatchTab[index]) {
+    setActiveTab(state.searchMatchTab[index]);
+  } else {
+    renderActiveTab();
+  }
 
   // Update active entry in sidebar
   updateActiveEntryInList();
@@ -253,7 +289,7 @@ function renderActiveTab() {
       tabContent.appendChild(renderSystemTab(entry));
       break;
     case 'tools':
-      tabContent.appendChild(renderToolsTab(entry));
+      tabContent.appendChild(renderToolsTab(entry, searchInput.value.trim()));
       break;
     case 'request':
       tabContent.appendChild(renderRequestTab(entry, {
