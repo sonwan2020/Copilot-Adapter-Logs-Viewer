@@ -11,7 +11,7 @@ import {
   renderRequestTab,
   renderResponseTab,
   renderRawTab,
-  renderMarkdownContent,
+  createLazyToggleWrapper,
   modelLabel,
 } from './renderer.js';
 
@@ -441,38 +441,8 @@ function showContentViewer(title, text) {
   const body = document.createElement('div');
   body.className = 'content-viewer-body';
 
-  // Render content with markdown formatting + plain text toggle
-  const wrapper = document.createElement('div');
-  wrapper.className = 'md-toggle-wrapper';
-
-  const toggleBtn = document.createElement('button');
-  toggleBtn.className = 'md-toggle-btn';
-  toggleBtn.textContent = 'Formatted';
-  toggleBtn.title = 'Toggle between formatted and plain text';
-
-  const mdView = renderMarkdownContent(text);
-  mdView.classList.add('hidden');
-  const plainView = document.createElement('pre');
-  plainView.className = 'plain-text-view';
-  plainView.textContent = text;
-
-  toggleBtn.addEventListener('click', () => {
-    const showingPlain = !plainView.classList.contains('hidden');
-    if (showingPlain) {
-      plainView.classList.add('hidden');
-      mdView.classList.remove('hidden');
-      toggleBtn.textContent = 'Plain Text';
-    } else {
-      mdView.classList.add('hidden');
-      plainView.classList.remove('hidden');
-      toggleBtn.textContent = 'Formatted';
-    }
-  });
-
-  wrapper.appendChild(toggleBtn);
-  wrapper.appendChild(mdView);
-  wrapper.appendChild(plainView);
-  body.appendChild(wrapper);
+  // Render content with lazy markdown/plain text toggle
+  body.appendChild(createLazyToggleWrapper(text, 'Formatted'));
 
   viewer.appendChild(header);
   viewer.appendChild(body);
