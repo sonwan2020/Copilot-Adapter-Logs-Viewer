@@ -846,9 +846,22 @@ html, body {
   color: var(--text-primary);
 }
 
+.usage-table-value.usage-table-value-left {
+  font-weight: normal;
+  font-size: 13px;
+  text-align: left;
+}
+
 /* ===== Response View ===== */
 .response-content {
   margin-bottom: 16px;
+}
+
+.response-section-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  user-select: none;
 }
 
 /* ===== SSE Formatted View ===== */

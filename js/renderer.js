@@ -1154,23 +1154,35 @@ export function renderResponseTab(entry) {
   const container = document.createElement('div');
   const parsed = parseSSEResponse(entry.copilotResponse);
 
-  // Assembled content
+  // Assembled content (collapsible, expanded by default)
   const contentSection = document.createElement('div');
   contentSection.className = 'response-content';
+
   const contentTitle = document.createElement('h3');
+  contentTitle.className = 'response-section-header';
   contentTitle.textContent = 'Assembled Response';
   contentTitle.style.marginBottom = '8px';
   contentTitle.style.fontSize = '14px';
+  contentTitle.style.cursor = 'pointer';
   contentSection.appendChild(contentTitle);
 
+  const contentBody = document.createElement('div');
+  contentBody.style.marginTop = '8px';
+
   if (parsed.content) {
-    contentSection.appendChild(createLazyToggleWrapper(parsed.content));
+    contentBody.appendChild(createLazyToggleWrapper(parsed.content));
   } else {
     const empty = document.createElement('div');
     empty.style.color = 'var(--text-muted)';
     empty.textContent = 'No content extracted from response.';
-    contentSection.appendChild(empty);
+    contentBody.appendChild(empty);
   }
+
+  contentTitle.addEventListener('click', () => {
+    contentBody.classList.toggle('hidden');
+  });
+
+  contentSection.appendChild(contentBody);
   container.appendChild(contentSection);
 
   // Usage stats
@@ -1216,7 +1228,7 @@ export function renderResponseTab(entry) {
     container.appendChild(modelInfo);
   }
 
-  // SSE Response section with formatted/raw toggle
+  // SSE Response section with formatted/raw toggle (collapsible, expanded by default)
   if (entry.copilotResponse) {
     const sseSection = document.createElement('div');
     sseSection.style.marginTop = '16px';
@@ -1231,6 +1243,7 @@ export function renderResponseTab(entry) {
     sseTitle.textContent = 'SSE Response';
     sseTitle.style.fontSize = '14px';
     sseTitle.style.margin = '0';
+    sseTitle.style.cursor = 'pointer';
     sseHeader.appendChild(sseTitle);
 
     const sseToggleBtn = document.createElement('button');
@@ -1241,6 +1254,25 @@ export function renderResponseTab(entry) {
 
     sseSection.appendChild(sseHeader);
 
+    const sseBody = document.createElement('div');
+    renderSseBody(sseBody, parsed, entry, sseToggleBtn);
+
+    sseTitle.addEventListener('click', () => {
+      sseBody.classList.toggle('hidden');
+    });
+
+    sseSection.appendChild(sseBody);
+    container.appendChild(sseSection);
+  }
+
+  return container;
+}
+
+/**
+ * Render the SSE Response body content (formatted + raw views).
+ * Called lazily on first expand.
+ */
+function renderSseBody(sseBody, parsed, entry, sseToggleBtn) {
     // === Formatted SSE view (default, visible) ===
     const formattedView = document.createElement('div');
     formattedView.className = 'sse-formatted-view';
@@ -1263,7 +1295,7 @@ export function renderResponseTab(entry) {
 
       for (const { label, value } of metaItems) {
         const row = document.createElement('tr');
-        row.innerHTML = `<td class="usage-table-label">${escapeHtml(label)}</td><td class="usage-table-value" style="font-size:13px;font-weight:normal;text-align:left;">${escapeHtml(String(value))}</td>`;
+        row.innerHTML = `<td class="usage-table-label">${escapeHtml(label)}</td><td class="usage-table-value usage-table-value-left">${escapeHtml(String(value))}</td>`;
         metaTable.appendChild(row);
       }
       formattedView.appendChild(metaTable);
@@ -1303,11 +1335,8 @@ export function renderResponseTab(entry) {
           titleDiv.textContent = group.type === 'content' ? 'Content' : 'Reasoning';
           groupDiv.appendChild(titleDiv);
 
-          // Grouped text
-          const textDiv = document.createElement('div');
-          textDiv.className = 'sse-delta-group-text';
-          textDiv.textContent = allText;
-          groupDiv.appendChild(textDiv);
+          // Grouped text with Formatted / Plain Text toggle
+          groupDiv.appendChild(createLazyToggleWrapper(allText));
 
           // Collapsible detail: individual chunks
           if (group.rows.length > 1) {
@@ -1499,13 +1528,13 @@ export function renderResponseTab(entry) {
       formattedView.appendChild(metaLines);
     }
 
-    sseSection.appendChild(formattedView);
+    sseBody.appendChild(formattedView);
 
     // === Raw SSE view (hidden by default) ===
     const rawView = document.createElement('div');
     rawView.className = 'hidden';
     rawView.appendChild(createJsonView(entry.copilotResponse));
-    sseSection.appendChild(rawView);
+    sseBody.appendChild(rawView);
 
     // Toggle handler
     sseToggleBtn.addEventListener('click', () => {
@@ -1520,11 +1549,6 @@ export function renderResponseTab(entry) {
         sseToggleBtn.textContent = 'Raw';
       }
     });
-
-    container.appendChild(sseSection);
-  }
-
-  return container;
 }
 
 /**
