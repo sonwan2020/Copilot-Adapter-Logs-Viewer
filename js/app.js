@@ -468,6 +468,13 @@ function collectAllMatches(entry, searchTerm) {
     matches.push({ tab: 'tools', occurrenceInTab: i });
   }
 
+  // Response tab (search copilotResponse raw text)
+  const response = entry.copilotResponse || '';
+  let respTotal = countOccurrences(response);
+  for (let i = 0; i < respTotal; i++) {
+    matches.push({ tab: 'response', occurrenceInTab: i });
+  }
+
   return matches;
 }
 

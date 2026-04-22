@@ -53,27 +53,38 @@ export function parseLogFile(text) {
 /**
  * Parse SSE response text into assembled content and usage stats.
  * @param {string} sseText - Raw SSE response text
- * @returns {{ content: string, usage: object|null, model: string|null, chunks: object[] }}
+ * @returns {{ content: string, usage: object|null, model: string|null, id: string|null, chunks: object[], deltaRows: object[], finishReason: string|null, hasDone: boolean }}
  */
 export function parseSSEResponse(sseText) {
-  if (!sseText) return { content: '', usage: null, model: null, chunks: [] };
+  if (!sseText) return { content: '', usage: null, model: null, id: null, chunks: [], deltaRows: [], finishReason: null, hasDone: false };
 
   const lines = sseText.split('\n');
   const chunks = [];
+  const deltaRows = [];
   let content = '';
   let usage = null;
   let model = null;
+  let id = null;
+  let finishReason = null;
+  let hasDone = false;
 
   for (const line of lines) {
     const trimmed = line.trim();
     if (!trimmed.startsWith('data:')) continue;
 
     const dataStr = trimmed.slice(5).trim();
-    if (dataStr === '[DONE]') continue;
+    if (dataStr === '[DONE]') {
+      hasDone = true;
+      continue;
+    }
 
     try {
       const data = JSON.parse(dataStr);
       chunks.push(data);
+
+      if (data.id && !id) {
+        id = data.id;
+      }
 
       if (data.model && !model) {
         model = data.model;
@@ -84,6 +95,13 @@ export function parseSSEResponse(sseText) {
         for (const choice of data.choices) {
           if (choice.delta?.content) {
             content += choice.delta.content;
+            deltaRows.push({
+              created: data.created || null,
+              delta: choice.delta.content,
+            });
+          }
+          if (choice.finish_reason && !finishReason) {
+            finishReason = choice.finish_reason;
           }
         }
       }
@@ -97,7 +115,7 @@ export function parseSSEResponse(sseText) {
     }
   }
 
-  return { content, usage, model, chunks };
+  return { content, usage, model, id, chunks, deltaRows, finishReason, hasDone };
 }
 
 /**

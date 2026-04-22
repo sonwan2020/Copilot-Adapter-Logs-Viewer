@@ -942,24 +942,144 @@ export function renderResponseTab(entry) {
     container.appendChild(modelInfo);
   }
 
-  // Raw SSE (collapsible)
+  // SSE Response section with formatted/raw toggle
   if (entry.copilotResponse) {
-    const rawDetails = document.createElement('details');
-    rawDetails.className = 'collapsible';
-    rawDetails.style.marginTop = '16px';
-    const rawSummary = document.createElement('summary');
-    rawSummary.textContent = 'Raw SSE Response';
-    const badge = document.createElement('span');
-    badge.className = 'collapsible-badge';
-    badge.textContent = `${entry.copilotResponse.length} chars`;
-    rawSummary.appendChild(badge);
-    rawDetails.appendChild(rawSummary);
+    const sseSection = document.createElement('div');
+    sseSection.style.marginTop = '16px';
 
-    const rawContent = document.createElement('div');
-    rawContent.className = 'collapsible-content';
-    rawContent.appendChild(createJsonView(entry.copilotResponse));
-    rawDetails.appendChild(rawContent);
-    container.appendChild(rawDetails);
+    const sseHeader = document.createElement('div');
+    sseHeader.style.display = 'flex';
+    sseHeader.style.alignItems = 'center';
+    sseHeader.style.gap = '8px';
+    sseHeader.style.marginBottom = '8px';
+
+    const sseTitle = document.createElement('h3');
+    sseTitle.textContent = 'SSE Response';
+    sseTitle.style.fontSize = '14px';
+    sseTitle.style.margin = '0';
+    sseHeader.appendChild(sseTitle);
+
+    const sseToggleBtn = document.createElement('button');
+    sseToggleBtn.className = 'sse-toggle-btn';
+    sseToggleBtn.textContent = 'Raw';
+    sseToggleBtn.title = 'Toggle between formatted and raw SSE';
+    sseHeader.appendChild(sseToggleBtn);
+
+    sseSection.appendChild(sseHeader);
+
+    // === Formatted SSE view (default, visible) ===
+    const formattedView = document.createElement('div');
+    formattedView.className = 'sse-formatted-view';
+
+    // Header properties table (id, model, created)
+    const firstChunk = parsed.chunks[0];
+    if (firstChunk) {
+      const metaTable = document.createElement('table');
+      metaTable.className = 'usage-table';
+      metaTable.style.marginBottom = '12px';
+
+      const metaItems = [];
+      if (parsed.id) metaItems.push({ label: 'ID', value: parsed.id });
+      if (parsed.model) metaItems.push({ label: 'Model', value: parsed.model });
+      if (firstChunk.created) {
+        const createdDate = new Date(firstChunk.created * 1000);
+        metaItems.push({ label: 'Created', value: createdDate.toLocaleString() });
+      }
+      if (firstChunk.system_fingerprint) metaItems.push({ label: 'System Fingerprint', value: firstChunk.system_fingerprint });
+
+      for (const { label, value } of metaItems) {
+        const row = document.createElement('tr');
+        row.innerHTML = `<td class="usage-table-label">${escapeHtml(label)}</td><td class="usage-table-value" style="font-size:13px;font-weight:normal;text-align:left;">${escapeHtml(String(value))}</td>`;
+        metaTable.appendChild(row);
+      }
+      formattedView.appendChild(metaTable);
+    }
+
+    // Delta table
+    if (parsed.deltaRows.length > 0) {
+      const deltaTable = document.createElement('table');
+      deltaTable.className = 'sse-delta-table';
+
+      const thead = document.createElement('thead');
+      thead.innerHTML = '<tr><th>#</th><th>Created</th><th>Delta Content</th></tr>';
+      deltaTable.appendChild(thead);
+
+      const tbody = document.createElement('tbody');
+      parsed.deltaRows.forEach((row, i) => {
+        const tr = document.createElement('tr');
+
+        const idxTd = document.createElement('td');
+        idxTd.className = 'sse-delta-idx';
+        idxTd.textContent = i;
+        tr.appendChild(idxTd);
+
+        const createdTd = document.createElement('td');
+        createdTd.className = 'sse-delta-created';
+        if (row.created) {
+          const d = new Date(row.created * 1000);
+          createdTd.textContent = d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        } else {
+          createdTd.textContent = '-';
+        }
+        tr.appendChild(createdTd);
+
+        const deltaTd = document.createElement('td');
+        deltaTd.className = 'sse-delta-content';
+        deltaTd.textContent = row.delta;
+        tr.appendChild(deltaTd);
+
+        tbody.appendChild(tr);
+      });
+      deltaTable.appendChild(tbody);
+      formattedView.appendChild(deltaTable);
+    }
+
+    // Special lines: finish_reason and [DONE]
+    if (parsed.finishReason || parsed.hasDone) {
+      const metaLines = document.createElement('div');
+      metaLines.className = 'sse-meta-lines';
+      metaLines.style.marginTop = '8px';
+
+      if (parsed.finishReason) {
+        const fr = document.createElement('span');
+        fr.className = 'sse-meta-badge';
+        fr.textContent = `finish_reason: ${parsed.finishReason}`;
+        metaLines.appendChild(fr);
+      }
+
+      if (parsed.hasDone) {
+        const done = document.createElement('span');
+        done.className = 'sse-meta-badge sse-meta-done';
+        done.textContent = '[DONE]';
+        metaLines.appendChild(done);
+      }
+
+      formattedView.appendChild(metaLines);
+    }
+
+    sseSection.appendChild(formattedView);
+
+    // === Raw SSE view (hidden by default) ===
+    const rawView = document.createElement('div');
+    rawView.className = 'hidden';
+    rawView.appendChild(createJsonView(entry.copilotResponse));
+    sseSection.appendChild(rawView);
+
+    // Toggle handler
+    sseToggleBtn.addEventListener('click', () => {
+      const showingFormatted = !formattedView.classList.contains('hidden');
+      if (showingFormatted) {
+        formattedView.classList.add('hidden');
+        rawView.classList.remove('hidden');
+        sseToggleBtn.textContent = 'Formatted';
+      } else {
+        rawView.classList.add('hidden');
+        formattedView.classList.remove('hidden');
+        sseToggleBtn.textContent = 'Raw';
+      }
+    });
+
+    container.appendChild(sseSection);
   }
 
   return container;
