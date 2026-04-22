@@ -1023,21 +1023,17 @@ export function renderResponseTab(entry) {
             return field ? field.value : '';
           }).join('');
 
-          // Summary line
-          const summary = document.createElement('div');
-          summary.className = 'sse-delta-group-summary';
+          // Title
+          const titleDiv = document.createElement('div');
+          titleDiv.className = 'sse-delta-group-title';
+          titleDiv.textContent = group.type === 'content' ? 'Content' : 'Reasoning';
+          groupDiv.appendChild(titleDiv);
 
-          const labelSpan = document.createElement('span');
-          labelSpan.className = 'sse-delta-field-label';
-          labelSpan.textContent = group.type + ': ';
-          summary.appendChild(labelSpan);
-
-          const valueSpan = document.createElement('span');
-          valueSpan.className = 'sse-delta-field-value';
-          valueSpan.textContent = allText;
-          summary.appendChild(valueSpan);
-
-          groupDiv.appendChild(summary);
+          // Grouped text
+          const textDiv = document.createElement('div');
+          textDiv.className = 'sse-delta-group-text';
+          textDiv.textContent = allText;
+          groupDiv.appendChild(textDiv);
 
           // Collapsible detail: individual chunks
           if (group.rows.length > 1) {
@@ -1098,41 +1094,63 @@ export function renderResponseTab(entry) {
             const funcDiv = document.createElement('div');
             funcDiv.className = 'sse-delta-func';
 
+            // Title
+            const titleDiv = document.createElement('div');
+            titleDiv.className = 'sse-delta-group-title';
+            titleDiv.textContent = 'Function';
+            funcDiv.appendChild(titleDiv);
+
+            // Fields grid
+            const fieldsGrid = document.createElement('div');
+            fieldsGrid.className = 'sse-delta-func-grid';
+
             if (fc.id) {
-              const idDiv = document.createElement('div');
-              idDiv.className = 'sse-delta-field';
               const idLabel = document.createElement('span');
-              idLabel.className = 'sse-delta-field-label';
-              idLabel.textContent = 'id: ';
-              idDiv.appendChild(idLabel);
+              idLabel.className = 'sse-delta-func-label';
+              idLabel.textContent = 'Id';
+              fieldsGrid.appendChild(idLabel);
+              const idSep = document.createElement('span');
+              idSep.className = 'sse-delta-func-sep';
+              idSep.textContent = ':';
+              fieldsGrid.appendChild(idSep);
               const idVal = document.createElement('span');
-              idVal.className = 'sse-delta-field-value';
+              idVal.className = 'sse-delta-func-value';
               idVal.textContent = fc.id;
-              idDiv.appendChild(idVal);
-              funcDiv.appendChild(idDiv);
+              fieldsGrid.appendChild(idVal);
             }
 
             if (fc.name) {
-              const nameDiv = document.createElement('div');
-              nameDiv.className = 'sse-delta-field';
               const nameLabel = document.createElement('span');
-              nameLabel.className = 'sse-delta-field-label';
-              nameLabel.textContent = 'name: ';
-              nameDiv.appendChild(nameLabel);
+              nameLabel.className = 'sse-delta-func-label';
+              nameLabel.textContent = 'Name';
+              fieldsGrid.appendChild(nameLabel);
+              const nameSep = document.createElement('span');
+              nameSep.className = 'sse-delta-func-sep';
+              nameSep.textContent = ':';
+              fieldsGrid.appendChild(nameSep);
               const nameVal = document.createElement('span');
-              nameVal.className = 'sse-delta-field-value';
+              nameVal.className = 'sse-delta-func-value';
               nameVal.textContent = fc.name;
-              nameDiv.appendChild(nameVal);
-              funcDiv.appendChild(nameDiv);
+              fieldsGrid.appendChild(nameVal);
             }
 
             if (fc.args) {
-              const argsDiv = document.createElement('div');
-              argsDiv.className = 'sse-delta-field';
               const argsLabel = document.createElement('span');
-              argsLabel.className = 'sse-delta-field-label';
-              argsLabel.textContent = 'arguments: ';
-              argsDiv.appendChild(argsLabel);
+              argsLabel.className = 'sse-delta-func-label';
+              argsLabel.textContent = 'Arguments';
+              fieldsGrid.appendChild(argsLabel);
+              const argsSep = document.createElement('span');
+              argsSep.className = 'sse-delta-func-sep';
+              argsSep.textContent = ':';
+              fieldsGrid.appendChild(argsSep);
+              const argsVal = document.createElement('span');
+              argsVal.className = 'sse-delta-func-value';
+              fieldsGrid.appendChild(argsVal);
+            }
+
+            funcDiv.appendChild(fieldsGrid);
+
+            if (fc.args) {
               const pre = document.createElement('pre');
               pre.className = 'sse-delta-json';
               try {
@@ -1140,8 +1158,7 @@ export function renderResponseTab(entry) {
               } catch {
                 pre.textContent = fc.args;
               }
-              argsDiv.appendChild(pre);
-              funcDiv.appendChild(argsDiv);
+              funcDiv.appendChild(pre);
             }
 
             // Show individual chunks toggle
