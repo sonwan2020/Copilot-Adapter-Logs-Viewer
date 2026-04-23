@@ -1,7 +1,7 @@
 /**
  * Main application module - wires everything together.
  */
-import { parseLogFile, parseLogFileStreaming, formatSize, getToolsFromCache } from './parser.js';
+import { parseLogFile, parseLogFileStreaming, formatSize, getToolsFromCache, formatEntrySize } from './parser.js';
 import {
   renderEntryList,
   renderDetailHeader,

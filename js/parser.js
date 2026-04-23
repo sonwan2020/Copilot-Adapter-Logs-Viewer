@@ -90,6 +90,8 @@ export async function parseLogFile(text) {
     try {
       const entry = JSON.parse(l);
       entry._index = entries.length;
+      // Store the original size in bytes (length of the line + newline)
+      entry._size = new Blob([line + '\n']).size;
 
       // Cache tools and replace with reference
       if (entry.anthropicRequest?.tools) {
@@ -174,15 +176,18 @@ export async function parseLogFileStreaming(file, onProgress) {
       lineBuffer += chunk;
       let newlineIdx;
       while ((newlineIdx = lineBuffer.indexOf('\n')) !== -1) {
-        const line = lineBuffer.slice(0, newlineIdx).trim();
+        const line = lineBuffer.slice(0, newlineIdx);
         lineBuffer = lineBuffer.slice(newlineIdx + 1);
 
-        if (!line) continue;
+        const trimmedLine = line.trim();
+        if (!trimmedLine) continue;
         hasContent = true;
 
         try {
-          const entry = JSON.parse(line);
+          const entry = JSON.parse(trimmedLine);
           entry._index = entries.length;
+          // Store the original size in bytes (length of the line + newline)
+          entry._size = new Blob([line + '\n']).size;
 
           // Cache tools and replace with reference
           if (entry.anthropicRequest?.tools) {
@@ -216,6 +221,8 @@ export async function parseLogFileStreaming(file, onProgress) {
       try {
         const entry = JSON.parse(remaining);
         entry._index = entries.length;
+        // Store the original size in bytes (no newline for last line if file doesn't end with one)
+        entry._size = new Blob([lineBuffer]).size;
 
         // Cache tools and replace with reference
         if (entry.anthropicRequest?.tools) {
@@ -425,4 +432,27 @@ export function formatSize(bytes) {
   if (bytes < 1024) return bytes + ' B';
   if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
   return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+}
+
+/**
+ * Format entry size for display in entry list.
+ * Shows size with K/M suffix, keeps 2 digits after radix point.
+ * Expected format: "12.03K", "982", "1.01M"
+ * Max length is 7 chars (e.g., "123.24K")
+ * @param {number} bytes
+ * @returns {string}
+ */
+export function formatEntrySize(bytes) {
+  if (bytes < 1024) {
+    // Less than 1K, show as-is without decimal
+    return String(bytes);
+  }
+  if (bytes < 1024 * 1024) {
+    // 1K to 1M, show in K with 2 decimal places
+    const kb = bytes / 1024;
+    return kb.toFixed(2) + 'K';
+  }
+  // 1M or more, show in M with 2 decimal places
+  const mb = bytes / (1024 * 1024);
+  return mb.toFixed(2) + 'M';
 }
