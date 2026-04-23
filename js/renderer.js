@@ -1,7 +1,7 @@
 /**
  * Renderer module - creates DOM elements for log entry visualization.
  */
-import { normalizeContent, parseSSEResponse, formatTimestamp, getToolsFromCache } from './parser.js';
+import { normalizeContent, parseSSEResponse, formatTimestamp, getToolsFromCache, getSystemFromCache } from './parser.js';
 
 /**
  * Helper function to get tools from an entry, handling both cached and inline tools.
@@ -19,6 +19,24 @@ function getTools(entry) {
 
   // Fall back to inline tools (for backwards compatibility or if caching failed)
   return req.tools || [];
+}
+
+/**
+ * Helper function to get system prompts from an entry, handling both cached and inline system prompts.
+ * @param {object} entry
+ * @returns {Array}
+ */
+function getSystem(entry) {
+  const req = entry.anthropicRequest;
+  if (!req) return [];
+
+  // Check if system prompts are cached
+  if (req._systemCacheId) {
+    return getSystemFromCache(req._systemCacheId) || [];
+  }
+
+  // Fall back to inline system prompts (for backwards compatibility or if caching failed)
+  return req.system || [];
 }
 
 /**
@@ -865,7 +883,7 @@ function renderMessageBody(body, msg, blocks, toolUseMap) {
  */
 export function renderSystemTab(entry) {
   const container = document.createElement('div');
-  const system = entry.anthropicRequest?.system || [];
+  const system = getSystem(entry);
 
   if (system.length === 0) {
     container.textContent = 'No system prompts in this entry.';
@@ -1024,7 +1042,9 @@ export function renderRequestTab(entry, callbacks = {}) {
       return { role: m.role, content: placeholder, _index: i };
     });
 
-    summary.system = (summary.system || []).map((s, i) => {
+    // Get system prompts from cache if needed
+    const system = getSystem(entry);
+    summary.system = system.map((s, i) => {
       const text = s.text || s.content || JSON.stringify(s);
       const placeholder = `__LINK_SYS_${i}__`;
       anthropicLinks.push({
@@ -1049,8 +1069,9 @@ export function renderRequestTab(entry, callbacks = {}) {
       },
     });
     summary.tools = toolPlaceholder;
-    // Remove cache ID from display
+    // Remove cache IDs from display
     delete summary._toolsCacheId;
+    delete summary._systemCacheId;
 
     anthropicCol.appendChild(createLinkedJsonView(summary, anthropicLinks));
   }

@@ -7,6 +7,10 @@
 // Deduplicates tool definitions across all entries to reduce memory usage
 const toolsCache = new Map();
 
+// Global system prompt cache: Map<hash, system array>
+// Deduplicates system prompts across all entries to reduce memory usage
+const systemCache = new Map();
+
 /**
  * Compute a SHA-256 hash for a tools array.
  * Uses the Web Crypto API to create a secure hash identifier.
@@ -65,6 +69,63 @@ export function clearToolsCache() {
 }
 
 /**
+ * Compute a SHA-256 hash for a system prompt array.
+ * Uses the Web Crypto API to create a secure hash identifier.
+ * @param {Array} system
+ * @returns {Promise<string>}
+ */
+async function hashSystem(system) {
+  if (!system || system.length === 0) return '';
+
+  // Convert system to JSON string for hashing
+  const str = JSON.stringify(system);
+
+  // Use Web Crypto API for SHA-256 hashing
+  const encoder = new TextEncoder();
+  const data = encoder.encode(str);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+
+  // Convert hash to hex string
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+
+  return hashHex;
+}
+
+/**
+ * Cache system prompt array and return a cache ID.
+ * If the same system prompt array is already cached, returns existing ID.
+ * @param {Array} system
+ * @returns {Promise<string|null>} - Cache ID or null if no system prompts
+ */
+async function cacheSystem(system) {
+  if (!system || system.length === 0) return null;
+
+  const hash = await hashSystem(system);
+  if (!systemCache.has(hash)) {
+    systemCache.set(hash, system);
+  }
+  return hash;
+}
+
+/**
+ * Retrieve system prompts from cache by ID.
+ * @param {string} cacheId
+ * @returns {Array|null}
+ */
+export function getSystemFromCache(cacheId) {
+  if (!cacheId) return null;
+  return systemCache.get(cacheId) || null;
+}
+
+/**
+ * Clear the system prompt cache. Useful for testing or memory cleanup.
+ */
+export function clearSystemCache() {
+  systemCache.clear();
+}
+
+/**
  * Parse a log file text into an array of log entries.
  * Expects JSONL format: one valid JSON object per line, no wrapping array.
  * @param {string} text - Raw file content
@@ -76,8 +137,9 @@ export async function parseLogFile(text) {
     throw new Error('Log file is empty.');
   }
 
-  // Clear cache at start of new file load
+  // Clear caches at start of new file load
   clearToolsCache();
+  clearSystemCache();
 
   // Parse as JSONL: one JSON object per line
   const entries = [];
@@ -97,6 +159,25 @@ export async function parseLogFile(text) {
         if (cacheId) {
           entry.anthropicRequest._toolsCacheId = cacheId;
           delete entry.anthropicRequest.tools;
+        }
+      }
+
+      // Cache system prompts (Anthropic Request)
+      if (entry.anthropicRequest?.system) {
+        const cacheId = await cacheSystem(entry.anthropicRequest.system);
+        if (cacheId) {
+          entry.anthropicRequest._systemCacheId = cacheId;
+          delete entry.anthropicRequest.system;
+        }
+      }
+
+      // Cache system prompts (OpenAI Request)
+      // OpenAI format uses system messages in the messages array, but may also have a system field
+      if (entry.openaiRequest?.system) {
+        const cacheId = await cacheSystem(entry.openaiRequest.system);
+        if (cacheId) {
+          entry.openaiRequest._systemCacheId = cacheId;
+          delete entry.openaiRequest.system;
         }
       }
 
@@ -134,8 +215,9 @@ export async function parseLogFile(text) {
  * @returns {Promise<{ entries: object[], truncated: boolean }>}
  */
 export async function parseLogFileStreaming(file, onProgress) {
-  // Clear cache at start of new file load
+  // Clear caches at start of new file load
   clearToolsCache();
+  clearSystemCache();
 
   const totalBytes = file.size;
   const entries = [];
@@ -193,6 +275,24 @@ export async function parseLogFileStreaming(file, onProgress) {
             }
           }
 
+          // Cache system prompts (Anthropic Request)
+          if (entry.anthropicRequest?.system) {
+            const cacheId = await cacheSystem(entry.anthropicRequest.system);
+            if (cacheId) {
+              entry.anthropicRequest._systemCacheId = cacheId;
+              delete entry.anthropicRequest.system;
+            }
+          }
+
+          // Cache system prompts (OpenAI Request)
+          if (entry.openaiRequest?.system) {
+            const cacheId = await cacheSystem(entry.openaiRequest.system);
+            if (cacheId) {
+              entry.openaiRequest._systemCacheId = cacheId;
+              delete entry.openaiRequest.system;
+            }
+          }
+
           entries.push(entry);
           lastLineFailed = false;
         } catch {
@@ -223,6 +323,24 @@ export async function parseLogFileStreaming(file, onProgress) {
           if (cacheId) {
             entry.anthropicRequest._toolsCacheId = cacheId;
             delete entry.anthropicRequest.tools;
+          }
+        }
+
+        // Cache system prompts (Anthropic Request)
+        if (entry.anthropicRequest?.system) {
+          const cacheId = await cacheSystem(entry.anthropicRequest.system);
+          if (cacheId) {
+            entry.anthropicRequest._systemCacheId = cacheId;
+            delete entry.anthropicRequest.system;
+          }
+        }
+
+        // Cache system prompts (OpenAI Request)
+        if (entry.openaiRequest?.system) {
+          const cacheId = await cacheSystem(entry.openaiRequest.system);
+          if (cacheId) {
+            entry.openaiRequest._systemCacheId = cacheId;
+            delete entry.openaiRequest.system;
           }
         }
 
@@ -379,13 +497,22 @@ export function extractMetadata(entry, index) {
     toolCount = req.tools?.length || 0;
   }
 
+  // Get system prompt count from cache if system prompts are cached
+  let systemPromptCount = 0;
+  if (req._systemCacheId) {
+    const system = getSystemFromCache(req._systemCacheId);
+    systemPromptCount = system?.length || 0;
+  } else {
+    systemPromptCount = req.system?.length || 0;
+  }
+
   return {
     index,
     timestamp: entry.timestamp || null,
     model: req.model || 'unknown',
     streaming: entry.streaming ?? null,
     messageCount: req.messages?.length || 0,
-    systemPromptCount: req.system?.length || 0,
+    systemPromptCount,
     toolCount,
     maxTokens: req.max_tokens || null,
     temperature: req.temperature ?? null,
