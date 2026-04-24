@@ -322,6 +322,16 @@ html, body {
   gap: 8px;
 }
 
+.entry-item-size {
+  font-size: 11px;
+  font-family: monospace;
+  color: var(--text-muted);
+  width: 7ch;
+  text-align: right;
+  flex-shrink: 0;
+  margin-left: auto;
+}
+
 .model-badge {
   display: inline-block;
   padding: 0 6px;
