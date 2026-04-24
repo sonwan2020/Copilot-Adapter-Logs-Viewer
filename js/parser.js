@@ -3,6 +3,9 @@
  * Handles JSON parsing (including truncated files) and SSE response parsing.
  */
 
+// Shared TextEncoder instance — stateless, safe to reuse across all calls.
+const encoder = new TextEncoder();
+
 // Global tools cache: Map<hash, tools array>
 // Deduplicates tool definitions across all entries to reduce memory usage
 const toolsCache = new Map();
@@ -20,7 +23,6 @@ async function hashTools(tools) {
   const str = JSON.stringify(tools);
 
   // Use Web Crypto API for SHA-256 hashing
-  const encoder = new TextEncoder();
   const data = encoder.encode(str);
   const hashBuffer = await crypto.subtle.digest('SHA-256', data);
 
@@ -90,6 +92,7 @@ export async function parseLogFile(text) {
     try {
       const entry = JSON.parse(l);
       entry._index = entries.length;
+      entry._byteSize = encoder.encode(l).byteLength;
 
       // Cache tools and replace with reference
       if (entry.anthropicRequest?.tools) {
@@ -183,6 +186,7 @@ export async function parseLogFileStreaming(file, onProgress) {
         try {
           const entry = JSON.parse(line);
           entry._index = entries.length;
+          entry._byteSize = encoder.encode(line).byteLength;
 
           // Cache tools and replace with reference
           if (entry.anthropicRequest?.tools) {
@@ -216,6 +220,7 @@ export async function parseLogFileStreaming(file, onProgress) {
       try {
         const entry = JSON.parse(remaining);
         entry._index = entries.length;
+        entry._byteSize = encoder.encode(remaining).byteLength;
 
         // Cache tools and replace with reference
         if (entry.anthropicRequest?.tools) {
@@ -425,4 +430,21 @@ export function formatSize(bytes) {
   if (bytes < 1024) return bytes + ' B';
   if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
   return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+}
+
+/**
+ * Format entry byte size for display in the entry list.
+ * Uses compact suffixes: raw number for <1 KB, "K" for KB, "M" for MB.
+ * The returned string is at most 7 characters (e.g. "123.24K").
+ * @param {number} bytes
+ * @returns {string}
+ */
+export function formatEntrySize(bytes) {
+  if (bytes >= 1024 * 1024) {
+    return (bytes / (1024 * 1024)).toFixed(2) + 'M';
+  }
+  if (bytes >= 1024) {
+    return (bytes / 1024).toFixed(2) + 'K';
+  }
+  return String(bytes);
 }
