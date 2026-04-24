@@ -658,7 +658,6 @@ export function renderEntryList(entries, container, onSelect) {
       <div class="entry-item-meta">
         <span>${msgCount} msg${msgCount !== 1 ? 's' : ''}</span>
         ${toolCount > 0 ? `<span>${toolCount} tools</span>` : ''}
-        ${entry.streaming ? '<span>streaming</span>' : ''}
         <span class="entry-item-size">${sizeStr}</span>
       </div>
     `;
