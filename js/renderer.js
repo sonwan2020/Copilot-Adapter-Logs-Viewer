@@ -1108,8 +1108,29 @@ export function renderRequestTab(entry, callbacks = {}) {
       },
     });
     summary.tools = toolPlaceholder;
+
+    // Resolve and display system prompt from cache if present
+    const openaiSystem = entry.openaiRequest._systemPromptCacheId
+      ? getSystemPromptFromCache(entry.openaiRequest._systemPromptCacheId) || []
+      : entry.openaiRequest.system || [];
+    if (openaiSystem.length > 0) {
+      summary.system = openaiSystem.map((s, i) => {
+        const text = s.text || s.content || JSON.stringify(s);
+        const placeholder = `__LINK_SYS_OAI_${i}__`;
+        openaiLinks.push({
+          placeholder,
+          label: `[${text.length} chars]`,
+          action: () => {
+            if (callbacks.onShowContent) callbacks.onShowContent(`System Prompt #${i + 1}`, text);
+          },
+        });
+        return { type: s.type, text: placeholder, _index: i };
+      });
+    }
     // Remove cache ID from display
     delete summary._systemPromptCacheId;
+
+    openaiCol.appendChild(createLinkedJsonView(summary, openaiLinks));
   }
 
   grid.appendChild(anthropicCol);
