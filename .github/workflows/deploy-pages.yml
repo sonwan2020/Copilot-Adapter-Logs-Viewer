@@ -21,11 +21,43 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Deploy to GitHub Pages
-        uses: peaceiris/actions-gh-pages@v3
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: .
-          # keep_files must stay true so PR preview subdirectories
-          # (pr-previews/pr-*/) are not deleted on each main-branch deploy.
-          keep_files: true
-          exclude_assets: '.github,.git,.gitignore,.gitattributes,.squad,.copilot,package.json,prompt.txt,CLAUDE.md'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          REPO_URL="https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+          DEPLOY_DIR=$(mktemp -d)
+
+          # Clone the existing gh-pages branch to preserve pr-previews/ subdirectories,
+          # or initialise a fresh repo when gh-pages doesn't exist yet.
+          if git ls-remote --exit-code "$REPO_URL" gh-pages > /dev/null 2>&1; then
+            git clone --branch gh-pages --single-branch "$REPO_URL" "$DEPLOY_DIR"
+          else
+            git init "$DEPLOY_DIR"
+            git -C "$DEPLOY_DIR" checkout -b gh-pages
+            git -C "$DEPLOY_DIR" remote add origin "$REPO_URL"
+          fi
+
+          # Sync source files into the deploy directory.
+          # --delete removes stale files; --exclude='pr-previews' keeps PR preview dirs intact.
+          rsync -a --delete \
+            --exclude='.github' \
+            --exclude='.git' \
+            --exclude='.gitignore' \
+            --exclude='.gitattributes' \
+            --exclude='.squad' \
+            --exclude='.copilot' \
+            --exclude='package.json' \
+            --exclude='prompt.txt' \
+            --exclude='CLAUDE.md' \
+            --exclude='pr-previews' \
+            ./ "$DEPLOY_DIR/"
+
+          git -C "$DEPLOY_DIR" config user.name "github-actions[bot]"
+          git -C "$DEPLOY_DIR" config user.email "github-actions[bot]@users.noreply.github.com"
+          git -C "$DEPLOY_DIR" add -A
+          if git -C "$DEPLOY_DIR" diff --staged --quiet; then
+            echo "No changes to deploy."
+          else
+            git -C "$DEPLOY_DIR" commit -m "chore: deploy ${GITHUB_SHA}"
+            git -C "$DEPLOY_DIR" push origin gh-pages
+          fi
