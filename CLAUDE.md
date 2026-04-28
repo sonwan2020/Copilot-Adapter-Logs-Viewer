@@ -14,11 +14,11 @@ Deployed via GitHub Pages (`deploy-pages.yml`): push to `main` triggers deployme
 
 ## Architecture
 
-Three ES modules loaded via `<script type="module">`, plus vendored highlight.js:
+Three plain scripts loaded in dependency order, plus vendored highlight.js:
 
+- **`js/parser.js`** — Data processing: JSONL parsing (two paths: `parseLogFileStreaming` via ReadableStream for modern browsers, `parseLogFile` via FileReader as fallback), SSE response parsing, content normalization. Exposes `window.CopilotParser`.
+- **`js/renderer.js`** — DOM generation: renders all 6 tabs (Messages, System, Tools, Request, Response, Raw), custom markdown engine, syntax highlighting via `hljs` global, interactive elements (copy buttons, collapsibles, plain-text toggles, inline JSON links). Exposes `window.CopilotRenderer`.
 - **`js/app.js`** — Orchestrator: owns the centralized `state` object, file I/O (drag-drop + streaming/legacy FileReader), event delegation, theme toggle, search/filter logic, search match navigation with highlight, content viewer modal.
-- **`js/parser.js`** — Data processing: JSONL parsing (two paths: `parseLogFileStreaming` via ReadableStream for modern browsers, `parseLogFile` via FileReader as fallback), SSE response parsing, content normalization. All pure/exported functions.
-- **`js/renderer.js`** — DOM generation: renders all 6 tabs (Messages, System, Tools, Request, Response, Raw), custom markdown engine, syntax highlighting via `hljs` global, interactive elements (copy buttons, collapsibles, plain-text toggles, inline JSON links).
 - **`css/style.css`** — Full theming via CSS custom properties (`[data-theme="light"]` / `[data-theme="dark"]`), flexbox/grid layout, responsive breakpoint at 768px.
 - **`js/vendor/highlight.min.js`** + **`css/vendor/hljs-*.min.css`** — Vendored highlight.js for syntax coloring. Loaded as a global script (not a module). Theme CSS swapped on light/dark toggle via `disabled` attribute. Guarded with `typeof hljs === 'undefined'` check.
 

@@ -1,7 +1,8 @@
 /**
  * Renderer module - creates DOM elements for log entry visualization.
  */
-import { normalizeContent, parseSSEResponse, formatTimestamp, getToolsFromCache } from './parser.js';
+(function () {
+const { normalizeContent, parseSSEResponse, formatTimestamp, getToolsFromCache } = window.CopilotParser;
 
 /**
  * Helper function to get tools from an entry, handling both cached and inline tools.
@@ -24,7 +25,7 @@ function getTools(entry) {
 /**
  * Get a short model label from full model name.
  */
-export function modelLabel(model) {
+function modelLabel(model) {
   if (!model) return 'unknown';
   if (model.includes('haiku')) return 'haiku';
   if (model.includes('opus')) return 'opus';
@@ -94,7 +95,7 @@ function createJsonView(obj) {
  * @param {string} initialBtnText - Initial button label (default: 'Plain Text')
  * @returns {HTMLElement}
  */
-export function createLazyToggleWrapper(text, initialBtnText = 'Formatted') {
+function createLazyToggleWrapper(text, initialBtnText = 'Formatted') {
   const wrapper = document.createElement('div');
   wrapper.className = 'md-toggle-wrapper';
 
@@ -204,7 +205,7 @@ function renderTextContent(text) {
  * Handles: headings, code blocks (with language label), inline code,
  * bold, italic, links, blockquotes, horizontal rules, and lists.
  */
-export function renderMarkdownContent(text) {
+function renderMarkdownContent(text) {
   const container = document.createElement('div');
   container.className = 'md-rendered';
 
@@ -627,7 +628,7 @@ function renderToolResultBody(body, block, toolName, toolInfo, toolUseMap, detec
 /**
  * Render the entry list sidebar items.
  */
-export function renderEntryList(entries, container, onSelect) {
+function renderEntryList(entries, container, onSelect) {
   container.innerHTML = '';
 
   entries.forEach((entry, i) => {
@@ -669,7 +670,7 @@ export function renderEntryList(entries, container, onSelect) {
 /**
  * Render the detail header for a selected entry.
  */
-export function renderDetailHeader(entry, container) {
+function renderDetailHeader(entry, container) {
   const req = entry.anthropicRequest || {};
   container.innerHTML = '';
 
@@ -692,7 +693,7 @@ export function renderDetailHeader(entry, container) {
 /**
  * Render the Messages tab content.
  */
-export function renderMessagesTab(entry) {
+function renderMessagesTab(entry) {
   const container = document.createElement('div');
   const messages = entry.anthropicRequest?.messages || [];
 
@@ -863,7 +864,7 @@ function renderMessageBody(body, msg, blocks, toolUseMap) {
 /**
  * Render the System Prompts tab content.
  */
-export function renderSystemTab(entry) {
+function renderSystemTab(entry) {
   const container = document.createElement('div');
   const system = entry.anthropicRequest?.system || [];
 
@@ -909,7 +910,7 @@ export function renderSystemTab(entry) {
 /**
  * Render the Tools tab content.
  */
-export function renderToolsTab(entry, searchTerm = '') {
+function renderToolsTab(entry, searchTerm = '') {
   const container = document.createElement('div');
   const tools = getTools(entry);
 
@@ -994,7 +995,7 @@ export function renderToolsTab(entry, searchTerm = '') {
  * @param {object} entry
  * @param {object} callbacks - { onSwitchTab, onShowContent }
  */
-export function renderRequestTab(entry, callbacks = {}) {
+function renderRequestTab(entry, callbacks = {}) {
   const container = document.createElement('div');
 
   const grid = document.createElement('div');
@@ -1177,7 +1178,7 @@ function createLinkedJsonView(obj, links) {
 /**
  * Render the Response tab.
  */
-export function renderResponseTab(entry) {
+function renderResponseTab(entry) {
   const container = document.createElement('div');
   // Cache parsed SSE result to avoid re-parsing on every tab switch
   if (!entry._parsedResponse) {
@@ -1627,7 +1628,7 @@ function renderSseBody(sseBody, parsed, entry, sseToggleBtn) {
 /**
  * Render the Raw JSON tab — shows the full entry as pretty-printed JSON with copy button.
  */
-export function renderRawTab(entry) {
+function renderRawTab(entry) {
   const container = document.createElement('div');
 
   // Cache stringified JSON to avoid multi-MB re-serialization on every tab switch
@@ -1672,3 +1673,18 @@ export function renderRawTab(entry) {
   container.appendChild(jsonContainer);
   return container;
 }
+
+window.CopilotRenderer = {
+  modelLabel,
+  createLazyToggleWrapper,
+  renderMarkdownContent,
+  renderEntryList,
+  renderDetailHeader,
+  renderMessagesTab,
+  renderSystemTab,
+  renderToolsTab,
+  renderRequestTab,
+  renderResponseTab,
+  renderRawTab,
+};
+})();

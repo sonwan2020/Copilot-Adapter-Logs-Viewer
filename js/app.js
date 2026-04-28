@@ -1,8 +1,9 @@
 /**
  * Main application module - wires everything together.
  */
-import { parseLogFile, parseLogFileStreaming, formatSize, getToolsFromCache } from './parser.js';
-import {
+(function () {
+const { parseLogFile, parseLogFileStreaming, formatSize, getToolsFromCache } = window.CopilotParser;
+const {
   renderEntryList,
   renderDetailHeader,
   renderMessagesTab,
@@ -13,7 +14,7 @@ import {
   renderRawTab,
   createLazyToggleWrapper,
   modelLabel,
-} from './renderer.js';
+} = window.CopilotRenderer;
 
 /**
  * Helper function to get tools from an entry, handling both cached and inline tools.
@@ -800,3 +801,4 @@ function init() {
 }
 
 document.addEventListener('DOMContentLoaded', init);
+})();

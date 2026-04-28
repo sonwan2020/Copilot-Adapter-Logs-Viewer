@@ -2,7 +2,7 @@
  * Parser module for Copilot Adapter log files.
  * Handles JSON parsing (including truncated files) and SSE response parsing.
  */
-
+(function () {
 // Global tools cache: Map<hash, tools array>
 // Deduplicates tool definitions across all entries to reduce memory usage
 const toolsCache = new Map();
@@ -52,7 +52,7 @@ async function cacheTools(tools) {
  * @param {string} cacheId
  * @returns {Array|null}
  */
-export function getToolsFromCache(cacheId) {
+function getToolsFromCache(cacheId) {
   if (!cacheId) return null;
   return toolsCache.get(cacheId) || null;
 }
@@ -60,7 +60,7 @@ export function getToolsFromCache(cacheId) {
 /**
  * Clear the tools cache. Useful for testing or memory cleanup.
  */
-export function clearToolsCache() {
+function clearToolsCache() {
   toolsCache.clear();
 }
 
@@ -70,7 +70,7 @@ export function clearToolsCache() {
  * @param {string} text - Raw file content
  * @returns {Promise<{ entries: object[], truncated: boolean }>}
  */
-export async function parseLogFile(text) {
+async function parseLogFile(text) {
   const trimmed = text.trim();
   if (!trimmed) {
     throw new Error('Log file is empty.');
@@ -133,7 +133,7 @@ export async function parseLogFile(text) {
  * @param {function} onProgress - Called with { bytesRead, totalBytes } during parsing
  * @returns {Promise<{ entries: object[], truncated: boolean }>}
  */
-export async function parseLogFileStreaming(file, onProgress) {
+async function parseLogFileStreaming(file, onProgress) {
   // Clear cache at start of new file load
   clearToolsCache();
 
@@ -257,7 +257,7 @@ export async function parseLogFileStreaming(file, onProgress) {
  * @param {string} sseText - Raw SSE response text
  * @returns {{ content: string, usage: object|null, model: string|null, id: string|null, chunks: object[], deltaRows: object[], finishReason: string|null, hasDone: boolean }}
  */
-export function parseSSEResponse(sseText) {
+function parseSSEResponse(sseText) {
   if (!sseText) return { content: '', usage: null, model: null, id: null, chunks: [], deltaRows: [], finishReason: null, hasDone: false };
 
   const lines = sseText.split('\n');
@@ -349,7 +349,7 @@ export function parseSSEResponse(sseText) {
  * @param {string|object[]} content
  * @returns {object[]}
  */
-export function normalizeContent(content) {
+function normalizeContent(content) {
   if (!content) return [];
   if (typeof content === 'string') {
     return [{ type: 'text', text: content }];
@@ -366,7 +366,7 @@ export function normalizeContent(content) {
  * @param {number} index
  * @returns {object}
  */
-export function extractMetadata(entry, index) {
+function extractMetadata(entry, index) {
   const req = entry.anthropicRequest || {};
   const parsedResponse = parseSSEResponse(entry.copilotResponse);
 
@@ -400,7 +400,7 @@ export function extractMetadata(entry, index) {
  * @param {string} isoString
  * @returns {string}
  */
-export function formatTimestamp(isoString) {
+function formatTimestamp(isoString) {
   if (!isoString) return 'N/A';
   try {
     const d = new Date(isoString);
@@ -421,8 +421,21 @@ export function formatTimestamp(isoString) {
  * @param {number} bytes
  * @returns {string}
  */
-export function formatSize(bytes) {
+function formatSize(bytes) {
   if (bytes < 1024) return bytes + ' B';
   if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
   return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
 }
+
+window.CopilotParser = {
+  getToolsFromCache,
+  clearToolsCache,
+  parseLogFile,
+  parseLogFileStreaming,
+  parseSSEResponse,
+  normalizeContent,
+  extractMetadata,
+  formatTimestamp,
+  formatSize,
+};
+})();
