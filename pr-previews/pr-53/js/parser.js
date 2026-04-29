@@ -84,12 +84,14 @@ export async function parseLogFile(text) {
   const lines = trimmed.split('\n');
   let parseErrors = 0;
 
+  const sizeEncoder = new TextEncoder();
   for (const line of lines) {
     const l = line.trim();
     if (!l) continue;
     try {
       const entry = JSON.parse(l);
       entry._index = entries.length;
+      entry._size = sizeEncoder.encode(l).byteLength;
 
       // Cache tools and replace with reference
       if (entry.anthropicRequest?.tools) {
@@ -147,6 +149,7 @@ export async function parseLogFileStreaming(file, onProgress) {
   const stream = file.stream();
   const reader = stream.getReader();
   const decoder = new TextDecoder('utf-8');
+  const sizeEncoder = new TextEncoder();
 
   // Batch progress updates — report at most every 100ms to avoid UI thrashing
   let lastProgressTime = 0;
@@ -183,6 +186,7 @@ export async function parseLogFileStreaming(file, onProgress) {
         try {
           const entry = JSON.parse(line);
           entry._index = entries.length;
+          entry._size = sizeEncoder.encode(line).byteLength;
 
           // Cache tools and replace with reference
           if (entry.anthropicRequest?.tools) {
@@ -216,6 +220,7 @@ export async function parseLogFileStreaming(file, onProgress) {
       try {
         const entry = JSON.parse(remaining);
         entry._index = entries.length;
+        entry._size = sizeEncoder.encode(remaining).byteLength;
 
         // Cache tools and replace with reference
         if (entry.anthropicRequest?.tools) {
@@ -425,4 +430,20 @@ export function formatSize(bytes) {
   if (bytes < 1024) return bytes + ' B';
   if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
   return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+}
+
+/**
+ * Format an entry's raw byte size for display in the entry list.
+ * Returns a right-justified string of at most 7 characters:
+ *   - < 1024 bytes: plain integer, e.g. "982"
+ *   - < 1 MiB:      two decimal places + "K", e.g. "12.03K"
+ *   - >= 1 MiB:     two decimal places + "M", e.g. "1.01M"
+ * @param {number} bytes
+ * @returns {string}
+ */
+export function formatEntrySize(bytes) {
+  if (bytes < 1024) return String(bytes);
+  const kStr = (bytes / 1024).toFixed(2) + 'K';
+  if (kStr.length <= 7) return kStr;
+  return (bytes / (1024 * 1024)).toFixed(2) + 'M';
 }
