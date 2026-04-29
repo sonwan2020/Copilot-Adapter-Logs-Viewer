@@ -90,6 +90,7 @@ export async function parseLogFile(text) {
     try {
       const entry = JSON.parse(l);
       entry._index = entries.length;
+      entry._size = new TextEncoder().encode(l).byteLength;
 
       // Cache tools and replace with reference
       if (entry.anthropicRequest?.tools) {
@@ -183,6 +184,7 @@ export async function parseLogFileStreaming(file, onProgress) {
         try {
           const entry = JSON.parse(line);
           entry._index = entries.length;
+          entry._size = new TextEncoder().encode(line).byteLength;
 
           // Cache tools and replace with reference
           if (entry.anthropicRequest?.tools) {
@@ -216,6 +218,7 @@ export async function parseLogFileStreaming(file, onProgress) {
       try {
         const entry = JSON.parse(remaining);
         entry._index = entries.length;
+        entry._size = new TextEncoder().encode(remaining).byteLength;
 
         // Cache tools and replace with reference
         if (entry.anthropicRequest?.tools) {
@@ -425,4 +428,19 @@ export function formatSize(bytes) {
   if (bytes < 1024) return bytes + ' B';
   if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
   return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+}
+
+/**
+ * Format entry byte size for display in the entry list.
+ * Max 7 characters: plain integer for bytes < 1024, "XX.XXK" for KB, "XX.XXM" for MB.
+ * @param {number} bytes
+ * @returns {string}
+ */
+export function formatEntrySize(bytes) {
+  if (bytes == null) return '';
+  if (bytes < 1024) return String(bytes);
+  const k = bytes / 1024;
+  // Use k < 1000 (not 1024) to keep output within 7 characters ("999.99K" max)
+  if (k < 1000) return k.toFixed(2) + 'K';
+  return (bytes / (1024 * 1024)).toFixed(2) + 'M';
 }

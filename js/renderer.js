@@ -1,7 +1,7 @@
 /**
  * Renderer module - creates DOM elements for log entry visualization.
  */
-import { normalizeContent, parseSSEResponse, formatTimestamp, getToolsFromCache } from './parser.js';
+import { normalizeContent, parseSSEResponse, formatTimestamp, formatEntrySize, getToolsFromCache } from './parser.js';
 
 /**
  * Helper function to get tools from an entry, handling both cached and inline tools.
@@ -648,6 +648,7 @@ export function renderEntryList(entries, container, onSelect) {
     item.innerHTML = `
       <div class="entry-item-header">
         <span class="entry-item-index">#${entry._index}</span>
+        <span class="entry-item-size">${formatEntrySize(entry._size)}</span>
         <span class="entry-item-time">${escapeHtml(timeStr)}</span>
       </div>
       <div class="entry-item-model">
