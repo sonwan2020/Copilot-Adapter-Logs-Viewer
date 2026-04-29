@@ -796,6 +796,21 @@ export function renderMessagesTab(entry) {
  * Called lazily on first expand to avoid building DOM for collapsed messages.
  */
 function renderMessageBody(body, msg, blocks, toolUseMap) {
+  // JSON toggle button — positioned at top-right of message body
+  const jsonToggleBtn = document.createElement('button');
+  jsonToggleBtn.className = 'msg-json-toggle-btn';
+  jsonToggleBtn.textContent = 'Show JSON';
+  jsonToggleBtn.title = 'Toggle between formatted view and raw JSON';
+  body.appendChild(jsonToggleBtn);
+
+  // Formatted content wrapper
+  const formattedView = document.createElement('div');
+  formattedView.className = 'msg-formatted-view';
+  body.appendChild(formattedView);
+
+  // Lazy JSON view — created on first toggle
+  let jsonView = null;
+
   // Pre-process blocks: group all thinking blocks together, skip empty text blocks
   const processedBlocks = [];
   const thinkingTexts = [];
@@ -851,13 +866,43 @@ function renderMessageBody(body, msg, blocks, toolUseMap) {
       });
 
       thinkDiv.appendChild(thinkBody);
-      body.appendChild(thinkDiv);
+      formattedView.appendChild(thinkDiv);
     } else if (block.type === 'text' && msg.role === 'user') {
-      body.appendChild(createLazyToggleWrapper(block.text || ''));
+      formattedView.appendChild(createLazyToggleWrapper(block.text || ''));
     } else {
-      body.appendChild(renderContentBlock(block, toolUseMap));
+      formattedView.appendChild(renderContentBlock(block, toolUseMap));
     }
   }
+
+  jsonToggleBtn.addEventListener('click', () => {
+    const showingFormatted = !formattedView.classList.contains('hidden');
+    if (showingFormatted) {
+      // Lazily create JSON view on first toggle
+      if (!jsonView) {
+        jsonView = document.createElement('div');
+        jsonView.className = 'json-view-container';
+
+        const jsonStr = JSON.stringify(msg, null, 2);
+        const pre = document.createElement('pre');
+        pre.className = 'md-code-block';
+        const code = document.createElement('code');
+        code.className = 'md-code lang-json';
+        code.textContent = jsonStr;
+        applyHighlight(code, 'json');
+        pre.appendChild(code);
+        jsonView.appendChild(pre);
+        jsonView.appendChild(createCopyButton(jsonStr));
+        body.appendChild(jsonView);
+      }
+      formattedView.classList.add('hidden');
+      jsonView.classList.remove('hidden');
+      jsonToggleBtn.textContent = 'Show Formatted';
+    } else {
+      jsonView.classList.add('hidden');
+      formattedView.classList.remove('hidden');
+      jsonToggleBtn.textContent = 'Show JSON';
+    }
+  });
 }
 
 /**
